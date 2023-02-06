@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="style.css" />
+        <link
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+            integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI="
+            crossorigin=""
+        />
+        <script
+            src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+            integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM="
+            crossorigin=""
+        ></script>
+        <title>The Weather Here</title>
+    </head>
+    <body>
+        <header>
+            <h1>The Weather Here</h1>
+            <h2>All</h2>
+            <nav>
+                <a href="./index.html">Home</a> | <a href="./all.html">All</a>
+            </nav>
+        </header>
+        <main>
+            <div id="map"></div>
+        </main>
+        <script>
+            const dataContainer = document.getElementById("data-container");
+            let map = L.map("map").setView([0, 0], 9);
+            L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 19,
+                attribution:
+                    '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            }).addTo(map);
+
+            async function getAllData() {
+                response = await fetch("/api");
+                data = await response.json();
+                return data;
+            }
+
+            getAllData().then((data) => {
+                data.forEach((entry) => {
+                    const marker = L.marker([
+                        entry.position.latitude,
+                        entry.position.longitude,
+                    ]).addTo(map);
+
+                    marker.bindPopup(`Sent at: ${new Date(
+                        entry.timestamp
+                    ).toLocaleString([], { date: "short", time: "short" })}<br>
+                    Temperature: ${entry.weather.temperature}&deg;C<br>
+                    Description: ${entry.weather.description}<br>
+                    Air Quality: ${entry.aq.value} ${entry.aq.unit}
+                    `);
+                });
+            });
+
+            async function getGeolocation() {
+                const geolocationPromise = new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject);
+                });
+
+                try {
+                    const position = await geolocationPromise;
+                    return {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                    };
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+
+            geolocation = getGeolocation().then((data) => {
+                map.setView([data.latitude, data.longitude], 9);
+            });
+        </script>
+    </body>
+</html>

@@ -1,0 +1,10 @@
+.data {
+    background-color: #fd95fd;
+    padding: 1rem;
+    margin-block: 1rem;
+}
+
+#map {
+    height: 500px;
+    width: 100%;
+}

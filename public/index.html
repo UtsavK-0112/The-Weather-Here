@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="style.css" />
+        <title>The Weather Here</title>
+    </head>
+    <body>
+        <header>
+            <h1>The Weather Here</h1>
+            <h2>Home</h2>
+            <nav>
+                <a href="./index.html">Home</a> | <a href="./all.html">All</a>
+            </nav>
+            <main>
+                <div class="data">
+                    <p id="weather"></p>
+                    <p id="aq"></p>
+                </div>
+                <input type="button" value="Check in" id="check-in" />
+            </main>
+        </header>
+        <script>
+            const checkInButton = document.getElementById("check-in");
+            const weatherParagraph = document.getElementById("weather");
+            const aqParagraph = document.getElementById("aq");
+
+            let latitude, longitude;
+            let weatherData;
+            let aqData;
+
+            checkIn();
+
+            checkInButton.addEventListener("click", async () => {
+                console.log(`Check-in button clicked`);
+                await checkIn();
+                postData("./api", {
+                    position: { latitude, longitude },
+                    weather: weatherData,
+                    aq: aqData,
+                    timestamp: Date.now(),
+                });
+            });
+
+            async function checkIn() {
+                const position = await updateLocationData();
+                if (position === null) {
+                    alert("Unable to get location data");
+                    weatherParagraph.innerText = "Unable to get weather data";
+                    aqParagraph.innerText = "Unable to get air quality data";
+                    return;
+                }
+
+                await Promise.all([
+                    updateWeatherData(),
+                    updateAirQualityData(),
+                ]);
+            }
+
+            function postData(url = "", data = {}) {
+                return fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data),
+                }).then((response) => {
+                    console.log(`Sent request to ${url} with data: ${data}`);
+                    console.log(`Recieved response: ${response}`);
+                    return response.json();
+                });
+            }
+
+            async function updateLocationData() {
+                const position = await getGeolocation();
+
+                if (position === null) {
+                    alert("Unable to get location data");
+                    return;
+                }
+
+                latitude = position.latitude;
+                longitude = position.longitude;
+                console.log(
+                    `Updated location data to ${latitude}, ${longitude}`
+                );
+                return { latitude, longitude };
+            }
+
+            async function updateWeatherData() {
+                const data = await getWeather(latitude, longitude);
+
+                if (data === null) {
+                    weatherParagraph.innerText = "Unable to get weather data";
+                    return;
+                }
+
+                weatherData = data;
+                addWeatherContent(
+                    weatherParagraph,
+                    weatherData.temperature,
+                    weatherData.suburb,
+                    weatherData.description
+                );
+
+                console.log(`Updated weather data to ${data}`);
+            }
+
+            async function updateAirQualityData() {
+                const data = await getAirQuality(latitude, longitude);
+
+                if (data === null) {
+                    aqParagraph.innerText = "Unable to get air quality data";
+                    return;
+                }
+
+                aqData = data;
+                addAirQualityContent(
+                    aqParagraph,
+                    data.value,
+                    data.unit,
+                    data.timestamp
+                );
+
+                console.log(`Updated air quality data to ${data}`);
+            }
+
+            function addWeatherContent(
+                weatherElement,
+                temp,
+                suburb,
+                description
+            ) {
+                weatherElement.innerHTML = `
+                It is currently <span id="temperature">...</span>&deg;C in
+                <span id="suburb">...</span>,
+                with <span id="description">...</span> weather.`;
+
+                weatherElement.querySelector("#temperature").innerText = temp;
+                weatherElement.querySelector("#suburb").innerText = suburb;
+                weatherElement.querySelector("#description").innerText =
+                    description.toLowerCase();
+
+                return weatherElement;
+            }
+
+            function addAirQualityContent(aqElement, value, unit, timestamp) {
+                aqElement.innerHTML = `
+                The air quality last recorded at <span id="timestamp">...</span> was <span id="value">...</span>
+                <span id="unit">...</span>.`;
+
+                aqElement.querySelector("#timestamp").innerText = new Date(
+                    timestamp
+                ).toLocaleString([], {
+                    date: "short",
+                    time: "short",
+                });
+                aqElement.querySelector("#value").innerText = value;
+                aqElement.querySelector("#unit").innerText = unit;
+            }
+
+            async function getGeolocation() {
+                const geolocationPromise = new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject);
+                });
+
+                try {
+                    const position = await geolocationPromise;
+                    return {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                    };
+                } catch (error) {
+                    console.error(error);
+                    return null;
+                }
+            }
+
+            async function getWeather(latitude, longitude) {
+                const response = await fetch(
+                    `/weather?latitude=${latitude}&longitude=${longitude}`
+                );
+
+                if (!response.ok) {
+                    return null;
+                }
+
+                const data = await response.json();
+                return data;
+            }
+
+            async function getAirQuality(latitude, longitude) {
+                const response = await fetch(
+                    `/aq?latitude=${latitude}&longitude=${longitude}`
+                );
+
+                if (!response.ok) {
+                    return null;
+                }
+
+                const data = await response.json();
+                return data;
+            }
+        </script>
+    </body>
+</html>

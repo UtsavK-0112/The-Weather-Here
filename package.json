@@ -1,0 +1,21 @@
+{
+  "name": "the-weather-here",
+  "version": "1.0.0",
+  "description": "A weather app made with the help of the Coding Train's Data&APIs course.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "weather",
+    "geolocation",
+    "api"
+  ],
+  "author": "Utsav Kashichhwa",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "nedb": "^1.8.0"
+  }
+}
